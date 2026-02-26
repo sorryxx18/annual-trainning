@@ -301,7 +301,7 @@
     <script>
         const $ = (s) => document.querySelector(s);
         let courseCount = 0;
-        let historyData =[...MOCK_EXAMPLES];
+        let historyData = [...MOCK_EXAMPLES]; 
         
         // 分頁變數
         let currentPage = 1;
@@ -312,7 +312,7 @@
         let currentYear = new Date().getFullYear();
         let currentMonth = new Date().getMonth() + 1;
 
-        // ★ 修正重點 1：一開啟網頁就強迫同步遠端資料 ★
+        // 網頁開啟即自動載入
         window.onload = () => {
             initForm();
             loadHistory(true); 
@@ -529,18 +529,15 @@
         // ==========================================
         function sortHistoryData() {
             historyData.sort((a, b) => {
-                // 讓「範例」強制置頂
                 if(a.isExample && !b.isExample) return -1;
                 if(!a.isExample && b.isExample) return 1;
 
-                // 1. 依單位排序 (參考 UNIT_ORDER)
                 let idxA = UNIT_ORDER.indexOf(a.unit);
                 let idxB = UNIT_ORDER.indexOf(b.unit);
                 if (idxA === -1) idxA = 999;
                 if (idxB === -1) idxB = 999;
                 if (idxA !== idxB) return idxA - idxB;
 
-                // 2. 依年度/期別排序
                 const parsePeriod = (periodStr) => {
                     let match = periodStr.match(/(\d+)年(.*)/);
                     if (!match) return 0;
@@ -552,7 +549,6 @@
                     else m = parseInt(mStr.replace('月', '')) || 0;
                     return y + m;
                 };
-
                 return parsePeriod(a.period) - parsePeriod(b.period);
             });
         }
@@ -570,7 +566,7 @@
             if(level === '中隊常訓' && !comp) return alert("請選擇中隊！");
             if(!dates) return alert("請選取訓練日期！");
             
-            // ★ 修正重點 2：確保正確抓取多筆課程陣列 ★
+            // 抓取課程內容
             const coursesInputs = document.querySelectorAll('.course-input');
             let courses =[];
             coursesInputs.forEach(input => { 
@@ -591,7 +587,7 @@
                     period: period,
                     unit: finalUnit,
                     dates: dates,
-                    courses: courses.join('、'), // 合併成一個字串存入 Google Sheet 的 F 欄
+                    courses: courses.join('、'), 
                     people: people
                 }]
             };
@@ -607,8 +603,7 @@
                 if(json.status === 'success') {
                     alert('填報成功！');
                     resetForm();
-                    // ★ 修正：送出成功後，強制觸發一次重新同步 ★
-                    loadHistory(false); 
+                    loadHistory(false); // 送出成功後自動刷新資料庫
                 } else {
                     alert('發生錯誤: ' + json.message);
                 }
@@ -629,19 +624,17 @@
                 $('#loading').style.display = 'flex';
             }
 
-            // ★ 修正重點 3：加入 t=時間戳記，徹底解決快取不會更新的問題 ★
+            // 加上 t 參數破解瀏覽器快取
             fetch(GAS_API_URL + "?mode=get&t=" + new Date().getTime())
             .then(res => res.json())
             .then(json => {
                 if(json.status === 'success') {
-                    // 將從 GAS 取回來的真實資料，與本地端的範例合併
-                    historyData =[...MOCK_EXAMPLES, ...(json.data ||[])];
+                    historyData = [...MOCK_EXAMPLES, ...(json.data ||[])];
                     sortHistoryData(); 
                     renderHistory();
                     checkAudit(); 
                 }
-            })
-            .catch(err => console.error("同步失敗：", err))
+            }).catch(err => console.error(err))
             .finally(() => {
                 $('#loading').style.display = 'none';
             });
@@ -668,14 +661,12 @@
                     const globalIdx = startIdx + i + 1;
                     const tr = document.createElement('tr');
                     
-                    // 若為範例，套用特定 CSS 類別；否則斑馬紋
                     tr.className = row.isExample ? 'example-row' : (i % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-slate-50 hover:bg-slate-100');
                     
                     const levelTag = row.level === '大隊常訓' 
                         ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold border border-blue-200">大隊</span>`
                         : `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold border border-emerald-200">中隊</span>`;
 
-                    // 範例徽章
                     const exampleBadge = row.isExample ? `<span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px] ml-1 font-bold border border-amber-200">範例</span>` : '';
 
                     tr.innerHTML = `
@@ -706,9 +697,7 @@
         }
 
         function exportExcel() {
-            // ★ 匯出 Excel 時，過濾掉 isExample === true 的範例資料 ★
             const exportData = historyData.filter(r => !r.isExample);
-
             if(exportData.length === 0) return alert('目前只有範例，無實際資料可匯出！');
             
             const wb = new ExcelJS.Workbook(); 
@@ -741,13 +730,18 @@
         }
 
         // ==========================================
-        // ⚠️ 智慧稽核 (專注調查 114年 全年度)
+        // ⚠️ 智慧稽核 (完全修復邏輯漏洞)
         // ==========================================
         function checkAudit() {
             const TARGET_YEAR = '114年';
             
             const reportedBats = {}; 
             const reportedComps = {}; 
+
+            // ★ 修正 1：必須先初始化大隊的檢查清單！否則稽核會跳過它。
+            ["第一大隊", "第二大隊", "第三大隊", "第四大隊"].forEach(b => {
+                reportedBats[b] = new Set();
+            });
 
             for (let b in UNITS) {
                 UNITS[b].forEach(c => reportedComps[c] = new Set());
@@ -757,17 +751,18 @@
             historyData.forEach(row => {
                 if(row.isExample) return; 
 
-                // ★ 修正重點 4：強化去空白比對防呆，確保稽核能精準削掉 ★
                 const unitName = String(row.unit).trim();
                 const periodName = String(row.period).trim();
 
                 const match = periodName.match(/(\d+年)(.*)/);
                 if(match && match[1] === TARGET_YEAR) {
                     const monthOrHalf = match[2].trim(); 
-                    if(row.level === '大隊常訓' && reportedBats[unitName]) {
+                    
+                    // ★ 修正 2：確保找到了對應的單位才進行標記
+                    if(row.level === '大隊常訓' && reportedBats[unitName] !== undefined) {
                         reportedBats[unitName].add(monthOrHalf);
                     }
-                    if(row.level === '中隊常訓' && reportedComps[unitName]) {
+                    if(row.level === '中隊常訓' && reportedComps[unitName] !== undefined) {
                         reportedComps[unitName].add(monthOrHalf);
                     }
                 }
@@ -775,11 +770,10 @@
 
             let missingAlerts =[];
 
-            // 1. 檢查大隊常訓 (上半年、下半年)
-            let batMissingMsg =[];
-            ["第一大隊","第二大隊","第三大隊","第四大隊"].forEach(b => {
+            // 1. 檢查大隊常訓
+            let batMissingMsg =[];["第一大隊","第二大隊","第三大隊","第四大隊"].forEach(b => {
                 let missing = [];
-                const repSet = reportedBats[b] || new Set();
+                const repSet = reportedBats[b];
                 
                 if(!repSet.has('上半年')) missing.push('上半年');
                 if(!repSet.has('下半年')) missing.push('下半年');
@@ -792,7 +786,7 @@
                 missingAlerts.push(`<div class="mb-1.5"><span class="bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded text-[11px] font-bold mr-1">大隊</span> ${batMissingMsg.join(' ； ')}</div>`);
             }
 
-            // 2. 檢查中隊常訓 (1月~12月)
+            // 2. 檢查中隊常訓
             let compMissingMsg =[];
             for(let c in reportedComps) {
                 let missing =[];
