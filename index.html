@@ -642,32 +642,33 @@
         // 📊 歷史資料與稽核功能
         // ==========================================
         function loadHistory(showLoadingIcon = false) {
-            if(GAS_API_URL.includes("YOUR_SCRIPT_ID")) {
-                sortHistoryData();
-                renderHistory();
-                checkAudit();
-                return;
-            }
-            
-            if(showLoadingIcon) {
-                $('#loadingText').innerText = "資料同步中...";
-                $('#loading').style.display = 'flex';
-            }
+    if(GAS_API_URL.includes("YOUR_SCRIPT_ID")) {
+        sortHistoryData();
+        renderHistory();
+        checkAudit();
+        return;
+    }
+    
+    if(showLoadingIcon) {
+        $('#loadingText').innerText = "資料同步中...";
+        $('#loading').style.display = 'flex';
+    }
 
-            fetch(GAS_API_URL + "?mode=get")
-            .then(res => res.json())
-            .then(json => {
-                if(json.status === 'success') {
-                    // 將從 GAS 取回來的真實資料，與本地端的範例合併
-                    historyData = [...MOCK_EXAMPLES, ...(json.data ||[])];
-                    sortHistoryData(); 
-                    renderHistory();
-                    checkAudit(); 
-                }
-            }).finally(() => {
-                $('#loading').style.display = 'none';
-            });
+    // ⭐ 修改這裡：加上 ?mode=get&t=時間戳記
+    fetch(GAS_API_URL + "?mode=get&t=" + new Date().getTime())
+    .then(res => res.json())
+    .then(json => {
+        if(json.status === 'success') {
+            // 將從 GAS 取回來的真實資料，與本地端的範例合併
+            historyData = [...MOCK_EXAMPLES, ...(json.data ||[])];
+            sortHistoryData(); 
+            renderHistory();
+            checkAudit(); // 讀取完後立刻檢查稽核
         }
+    }).finally(() => {
+        $('#loading').style.display = 'none';
+    });
+}
 
         function renderHistory() {
             const tbody = $('#historyBody'); 
@@ -776,19 +777,22 @@
             }
 
             // 掃描歷史資料
-            historyData.forEach(row => {
-    if(row.isExample) return; // 確保範例不計入稽核
+            // ... 找到 checkAudit 裡面掃描 historyData 的這一段 ...
+historyData.forEach(row => {
+    if(row.isExample) return; 
 
-    // 這裡要確保 row.period 的格式是 "114年1月" 或 "114年上半年"
-    // 如果你在 GAS 存進去的時候多加了空格，這裡就會對不上
-    const match = row.period.match(/(\d+年)(.*)/);
+    // 使用 .trim() 確保單位跟期別沒有多餘空格
+    const unitName = row.unit.trim();
+    const periodName = row.period.trim();
+
+    const match = periodName.match(/(\d+年)(.*)/);
     if(match && match[1] === TARGET_YEAR) {
-        const monthOrHalf = match[2];
-        if(row.level === '大隊常訓' && reportedBats[row.unit]) {
-            reportedBats[row.unit].add(monthOrHalf);
+        const monthOrHalf = match[2].trim(); // 去掉月份後的空格
+        if(row.level === '大隊常訓' && reportedBats[unitName]) {
+            reportedBats[unitName].add(monthOrHalf);
         }
-        if(row.level === '中隊常訓' && reportedComps[row.unit]) {
-            reportedComps[row.unit].add(monthOrHalf);
+        if(row.level === '中隊常訓' && reportedComps[unitName]) {
+            reportedComps[unitName].add(monthOrHalf);
         }
     }
 });
