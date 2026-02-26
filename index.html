@@ -12,7 +12,7 @@
     <script>
         // ==========================================
         // ⚠️【之後請填入您的 Google Apps Script 網址】
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyPog1jUOjiqJTjWuyP0Ecbkz8bDGAf5Ux1nfkj1IHgWvOJs67BSFDZ2Y_-j2yq0aAz/exec"; 
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzxOYGbo4WnSJcSNkFu20J07VyE_K7vyWo3QFfXvx_pHW-vPFwOapapF0j-cISz2YnP/exec"; 
         // ==========================================
 
         // 單位清單定義
@@ -777,21 +777,21 @@
 
             // 掃描歷史資料
             historyData.forEach(row => {
-                // ★ 稽核時，直接跳過範例資料，不將範例算成已填報 ★
-                if(row.isExample) return; 
+    if(row.isExample) return; // 確保範例不計入稽核
 
-                const match = row.period.match(/(\d+年)(.*)/);
-                if(match && match[1] === TARGET_YEAR) {
-                    const monthOrHalf = match[2];
-                    if(row.level === '大隊常訓' && reportedBats[row.unit]) {
-                        reportedBats[row.unit].add(monthOrHalf);
-                    }
-                    if(row.level === '中隊常訓' && reportedComps[row.unit]) {
-                        reportedComps[row.unit].add(monthOrHalf);
-                    }
-                }
-            });
-
+    // 這裡要確保 row.period 的格式是 "114年1月" 或 "114年上半年"
+    // 如果你在 GAS 存進去的時候多加了空格，這裡就會對不上
+    const match = row.period.match(/(\d+年)(.*)/);
+    if(match && match[1] === TARGET_YEAR) {
+        const monthOrHalf = match[2];
+        if(row.level === '大隊常訓' && reportedBats[row.unit]) {
+            reportedBats[row.unit].add(monthOrHalf);
+        }
+        if(row.level === '中隊常訓' && reportedComps[row.unit]) {
+            reportedComps[row.unit].add(monthOrHalf);
+        }
+    }
+});
             let missingAlerts =[];
 
             // 1. 檢查大隊常訓 (上半年、下半年)
