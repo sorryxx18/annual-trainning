@@ -11,9 +11,9 @@
 
     <script>
         // ==========================================
-        // ⚠️【Google Apps Script 網址】
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzxOYGbo4WnSJcSNkFu20J07VyE_K7vyWo3QFfXvx_pHW-vPFwOapapF0j-cISz2YnP/exec"; 
+        // 🔗 正式版 GAS API 網址
         // ==========================================
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzxOYGbo4WnSJcSNkFu20J07VyE_K7vyWo3QFfXvx_pHW-vPFwOapapF0j-cISz2YnP/exec"; 
 
         const UNITS = {
             "第一大隊":["中正中隊", "萬華中隊", "文山中隊"],
@@ -42,27 +42,27 @@
         aside { transition: transform 0.3s ease-in-out; }
         .sidebar-link.active { background: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.4); }
         .table-wrapper { width: 100%; overflow-x: auto; background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
-        table { width: 100%; min-width: 1050px; border-collapse: collapse; }
+        table { width: 100%; min-width: 1200px; border-collapse: collapse; }
         th { background: #1e293b; color: #f8fafc; font-weight: 600; padding: 12px 10px; font-size: 14px; position: sticky; top: 0; z-index: 10; }
-        td { border-bottom: 1px solid #f1f5f9; padding: 12px 10px; vertical-align: middle; background: white; font-size: 14px; }
+        td { border-bottom: 1px solid #f1f5f9; padding: 12px 10px; vertical-align: middle; background: white; font-size: 13px; }
         .example-row td { background-color: #fffbeb !important; color: #92400e; border-style: dashed; }
         .input-style { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font-size: 14px; outline: none; transition: all 0.2s; background: #fff; }
         .input-style:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
         .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; cursor: pointer; }
         .btn-blue { background: #2563eb; color: white; } .btn-blue:hover { background: #1d4ed8; }
         .btn-white { background: white; border: 1px solid #cbd5e1; color: #475569; } .btn-white:hover { background: #f8fafc; color: #2563eb; }
-        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .stat-card { background: white; padding: 12px 20px; border-radius: 16px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden">
     <div id="loading" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden flex-col justify-center items-center text-white">
         <div class="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
-        <div class="font-bold tracking-widest" id="loadingText">同步資料中...</div>
+        <div class="font-bold tracking-widest" id="loadingText">自動同步中...</div>
     </div>
 
-    <!-- 側邊選單 -->
-    <aside id="mainSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 fixed inset-y-0 left-0 z-30 transform -translate-x-full md:relative md:translate-x-0 transition duration-200">
+    <aside id="mainSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 fixed inset-y-0 left-0 z-30 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 shadow-2xl">
         <div class="p-6 border-b border-slate-800 flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg"><i class="ri-history-fill text-2xl"></i></div>
             <div><h1 class="font-bold text-white leading-tight">常訓調查</h1><p class="text-[10px] text-slate-500 uppercase tracking-widest">112-114 年度</p></div>
@@ -71,24 +71,19 @@
             <div onclick="switchPage('input')" id="nav-input" class="sidebar-link active px-4 py-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer"><i class="ri-add-circle-line text-xl"></i> 填報作業</div>
             <div onclick="switchPage('history')" id="nav-history" class="sidebar-link px-4 py-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer"><i class="ri-database-2-line text-xl"></i> 歷史資料</div>
         </nav>
-        <button onclick="toggleSidebar()" class="md:hidden p-4 text-slate-500">關閉選單</button>
+        <button onclick="toggleSidebar()" class="md:hidden p-4 text-slate-500 text-xs">點擊背景關閉選單</button>
     </aside>
 
     <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
 
     <main class="flex-1 flex flex-col min-w-0">
-        <!-- 頂部進度稽核區 (網格化顯示，不亂) -->
-        <div id="alertBanner" class="bg-white border-b border-rose-100 p-4 hidden shrink-0">
+        <!-- 頂部進度稽核區 -->
+        <div id="alertBanner" class="bg-white border-b border-rose-100 p-4 hidden shrink-0 shadow-sm">
             <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                    <i class="ri-error-warning-fill text-rose-500 text-xl"></i>
-                    <h3 class="font-bold text-slate-800">各年度缺交單位追蹤 (112-114)</h3>
-                </div>
-                <button onclick="loadHistory(true)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100"><i class="ri-refresh-line"></i> 立即同步資料</button>
+                <div class="flex items-center gap-2"><i class="ri-error-warning-fill text-rose-500 text-xl"></i><h3 class="font-bold text-slate-800">近3年缺交單位追蹤</h3></div>
+                <button onclick="loadHistory(true)" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100"><i class="ri-refresh-line"></i> 重新同步</button>
             </div>
-            <div id="alertContent" class="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-48 overflow-y-auto custom-scroll pr-2">
-                <!-- 由 JS 生成各年度分類網格 -->
-            </div>
+            <div id="alertContent" class="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-48 overflow-y-auto custom-scroll pr-2"></div>
         </div>
 
         <header class="bg-white border-b border-slate-200 h-14 flex items-center justify-between px-4 md:hidden shrink-0 z-10">
@@ -100,84 +95,75 @@
         <div id="page-input" class="flex-1 p-6 overflow-y-auto">
             <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-8">
-                    <h2 class="text-2xl font-bold text-slate-800 mb-6">常年訓練辦理情形填報</h2>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6">填報作業單</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div class="space-y-6">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">1. 訓練層級</label>
+                            <div><label class="block text-xs font-bold text-slate-400 uppercase mb-3">1. 訓練層級</label>
                                 <div class="flex p-1 bg-slate-100 rounded-2xl">
                                     <label class="flex-1 text-center py-2.5 rounded-xl cursor-pointer font-bold text-slate-500 transition has-[:checked]:bg-white has-[:checked]:text-blue-600 has-[:checked]:shadow-sm"><input type="radio" name="trainLevel" value="大隊常訓" onchange="updateFormUI()" checked class="hidden"> 大隊常訓</label>
                                     <label class="flex-1 text-center py-2.5 rounded-xl cursor-pointer font-bold text-slate-500 transition has-[:checked]:bg-white has-[:checked]:text-blue-600 has-[:checked]:shadow-sm"><input type="radio" name="trainLevel" value="中隊常訓" onchange="updateFormUI()" class="hidden"> 中隊常訓</label>
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">2. 單位選擇</label>
+                            <div><label class="block text-xs font-bold text-slate-400 uppercase mb-3">2. 單位選擇</label>
                                 <select id="selBattalion" onchange="updateCompanyDropdown()" class="input-style font-bold mb-3"></select>
                                 <select id="selCompany" class="input-style font-bold hidden"></select>
                             </div>
                         </div>
                         <div class="space-y-6">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">3. 辦理年度與期別</label>
+                            <div><label class="block text-xs font-bold text-slate-400 uppercase mb-3">3. 年度與期別</label>
                                 <div class="grid grid-cols-2 gap-3 mb-3">
-                                    <select id="selYear" class="input-style font-bold">
-                                        <option value="114年">114年</option>
-                                        <option value="113年">113年</option>
-                                        <option value="112年">112年</option>
-                                    </select>
+                                    <select id="selYear" class="input-style font-bold"><option value="114年">114年</option><option value="113年">113年</option><option value="112年">112年</option></select>
                                     <select id="selPeriod" class="input-style font-bold"></select>
                                 </div>
-                                <input type="text" id="trainDates" readonly onclick="openCalendar()" placeholder="點擊選取訓練日期" class="input-style font-bold text-blue-600 cursor-pointer">
+                                <input type="text" id="trainDates" readonly onclick="openCalendar()" placeholder="選取日期" class="input-style font-bold text-blue-600 cursor-pointer">
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">4. 總參與人次</label>
+                            <div><label class="block text-xs font-bold text-slate-400 uppercase mb-3">4. 總參與人次</label>
                                 <div class="relative"><input type="number" id="trainPeople" placeholder="0" class="input-style font-bold"><span class="absolute right-4 top-3 text-slate-400 font-bold">人</span></div>
                             </div>
                         </div>
                     </div>
                     <div class="mt-8 pt-8 border-t border-slate-100">
-                        <div class="flex justify-between items-end mb-4">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">5. 課程內容 (2-4項)</label>
-                            <button onclick="addCourse()" id="btnAddCourse" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition flex items-center gap-1"><i class="ri-add-line"></i> 新增一項課程</button>
-                        </div>
+                        <div class="flex justify-between items-end mb-4"><label class="block text-xs font-bold text-slate-400 uppercase">5. 課程內容 (2-4項)</label><button onclick="addCourse()" id="btnAddCourse" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i class="ri-add-line"></i> 新增</button></div>
                         <div id="courseContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
                     </div>
-                    <div class="mt-10 flex gap-4">
-                        <button onclick="resetForm()" class="flex-1 py-4 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition">重新填寫</button>
-                        <button onclick="submitData()" class="flex-[2] py-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition flex justify-center items-center gap-2"><i class="ri-send-plane-fill"></i> 確認送出</button>
-                    </div>
+                    <div class="mt-10 flex gap-4"><button onclick="resetForm()" class="flex-1 py-4 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200">重填</button><button onclick="submitData()" class="flex-[2] py-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 flex justify-center items-center gap-2"><i class="ri-send-plane-fill"></i> 送出資料</button></div>
                 </div>
             </div>
         </div>
 
-        <!-- 歷史紀錄 -->
+        <!-- 歷史紀錄與盤點 -->
         <div id="page-history" class="hidden flex-1 p-6 flex-col overflow-hidden">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="stat-card border-l-4 border-l-blue-600"><span class="text-[10px] text-slate-400 font-bold uppercase">Sheet 資料庫總量</span><div class="flex items-end gap-1"><span id="statTotal" class="text-2xl font-black text-slate-800">0</span><span class="text-xs text-slate-400 mb-1">筆</span></div></div>
+                <div class="stat-card border-l-4 border-l-blue-400"><span class="text-[10px] text-blue-400 font-bold uppercase">114 年度已收</span><div class="flex items-end gap-1"><span id="stat114" class="text-2xl font-black text-blue-600">0</span><span class="text-xs text-slate-400 mb-1">筆</span></div></div>
+                <div class="stat-card border-l-4 border-l-emerald-400"><span class="text-[10px] text-emerald-400 font-bold uppercase">113 年度已收</span><div class="flex items-end gap-1"><span id="stat113" class="text-2xl font-black text-emerald-600">0</span><span class="text-xs text-slate-400 mb-1">筆</span></div></div>
+                <div class="stat-card border-l-4 border-l-slate-400"><span class="text-[10px] text-slate-400 font-bold uppercase">112 年度已收</span><div class="flex items-end gap-1"><span id="stat112" class="text-2xl font-black text-slate-600">0</span><span class="text-xs text-slate-400 mb-1">筆</span></div></div>
+            </div>
+
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-slate-800">歷史紀錄 (依單位及年度排序)</h2>
-                <button onclick="exportExcel()" class="btn btn-white border-emerald-200 text-emerald-600 hover:bg-emerald-50"><i class="ri-file-excel-2-line"></i> 匯出報表</button>
+                <h2 class="text-xl font-bold text-slate-800">歷史紀錄清單</h2>
+                <button onclick="exportExcel()" class="btn btn-white text-emerald-600 font-bold border-emerald-100 hover:bg-emerald-50"><i class="ri-file-excel-2-line"></i> 匯出 Excel 盤點表</button>
             </div>
             <div class="table-wrapper flex-1 overflow-auto custom-scroll">
                 <table id="historyTable" class="w-full text-left">
                     <thead class="sticky top-0 z-10">
                         <tr>
                             <th class="w-16 text-center">項次</th>
-                            <th class="w-24">層級</th>
-                            <th class="w-36">單位</th>
-                            <th class="w-32">年度/期別</th>
-                            <th>訓練日期</th>
-                            <th class="w-32 text-right">人次</th>
-                            <th class="w-24 text-center">狀態</th>
+                            <th class="w-20">層級</th>
+                            <th class="w-32">單位</th>
+                            <th class="w-28">年度/期別</th>
+                            <th class="w-40">日期</th>
+                            <th>課程內容</th>
+                            <th class="w-20 text-right">人次</th>
+                            <th class="w-20 text-center">狀態</th>
                         </tr>
                     </thead>
                     <tbody id="historyBody" class="text-slate-600"></tbody>
                 </table>
             </div>
-            <div class="mt-4 flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-slate-200">
-                <div class="text-xs text-slate-500">顯示第 <span id="pageStart" class="font-bold text-slate-800">0</span> - <span id="pageEnd" class="font-bold text-slate-800">0</span> 筆，共 <span id="pageTotal" class="font-bold text-blue-600">0</span> 筆</div>
-                <div class="flex gap-2">
-                    <button onclick="changePage(-1)" id="btnPrev" class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold disabled:opacity-30">上一頁</button>
-                    <button onclick="changePage(1)" id="btnNext" class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold disabled:opacity-30">下一頁</button>
-                </div>
+            <div class="mt-4 flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200">
+                <div class="text-xs text-slate-500">顯示：<span id="pageStart" class="font-bold text-slate-800">0</span>-<span id="pageEnd" class="font-bold text-slate-800">0</span> / 總共 <span id="pageTotal" class="font-bold text-blue-600">0</span></div>
+                <div class="flex gap-2"><button onclick="changePage(-1)" id="btnPrev" class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold disabled:opacity-30">上一頁</button><button onclick="changePage(1)" id="btnNext" class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold disabled:opacity-30">下一頁</button></div>
             </div>
         </div>
     </main>
@@ -185,11 +171,7 @@
     <!-- 日曆 -->
     <div id="calendarModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-[1000] justify-center items-center">
         <div class="bg-white w-[340px] p-6 rounded-3xl shadow-2xl">
-            <div class="flex justify-between items-center mb-4">
-                <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full transition"><i class="ri-arrow-left-s-line"></i></button>
-                <div class="font-bold text-slate-800" id="calMonthTitle"></div>
-                <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full transition"><i class="ri-arrow-right-s-line"></i></button>
-            </div>
+            <div class="flex justify-between items-center mb-4"><button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full"><i class="ri-arrow-left-s-line"></i></button><div class="font-bold text-slate-800" id="calMonthTitle"></div><button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full"><i class="ri-arrow-right-s-line"></i></button></div>
             <div id="calGrid" class="grid grid-cols-7 gap-1 text-center"></div>
             <div class="mt-6 flex gap-2"><button onclick="calClear()" class="flex-1 py-2 text-sm font-bold text-rose-500 border border-rose-100 rounded-xl">清除</button><button onclick="confirmCalendar()" class="flex-1 py-2 text-sm font-bold bg-slate-900 text-white rounded-xl">確定</button></div>
         </div>
@@ -197,117 +179,97 @@
 
     <script>
         const $ = (s) => document.querySelector(s);
-        let historyData = [];
+        let historyData =[];
         let currentPage = 1, itemsPerPage = 15, courseCount = 0;
         let selectedDates = new Set(), currentYear = 2026, currentMonth = 1;
 
-        window.onload = () => {
-            initInputs();
-            updateFormUI();
-            loadHistory(true);
-        };
+        window.onload = () => { initInputs(); updateFormUI(); loadHistory(true); };
 
         function toggleSidebar() { $('#mainSidebar').classList.toggle('-translate-x-full'); $('#sidebarOverlay').classList.toggle('hidden'); }
         function switchPage(p) {
-            $('.sidebar-link.active').classList.remove('active');
-            $(`#nav-${p}`).classList.add('active');
-            $('#page-input').classList.toggle('hidden', p !== 'input');
-            $('#page-history').classList.toggle('hidden', p !== 'history');
+            $('.sidebar-link.active').classList.remove('active'); $(`#nav-${p}`).classList.add('active');
+            $('#page-input').classList.toggle('hidden', p !== 'input'); $('#page-history').classList.toggle('hidden', p !== 'history');
             if(p === 'history') $('#page-history').classList.add('flex');
-            if(window.innerWidth < 768) toggleSidebar();
+            if(window.innerWidth < 768 && !$('#mainSidebar').classList.contains('-translate-x-full')) toggleSidebar();
         }
 
         function initInputs() {
-            const bat = $('#selBattalion');
-            bat.innerHTML = '<option value="">請選擇大隊...</option>';
+            const bat = $('#selBattalion'); bat.innerHTML = '<option value="">請選擇大隊...</option>';
             ["第一大隊", "第二大隊", "第三大隊", "第四大隊"].forEach(b => bat.add(new Option(b, b)));
         }
 
         function updateFormUI() {
-            const level = $('input[name="trainLevel"]:checked').value;
-            const period = $('#selPeriod');
-            period.innerHTML = '';
-            if(level === '大隊常訓') {
-                ['上半年', '下半年'].forEach(v => period.add(new Option(v, v)));
-                $('#selCompany').classList.add('hidden');
-            } else {
-                for(let i=1; i<=12; i++) period.add(new Option(i+'月', i+'月'));
-                $('#selCompany').classList.remove('hidden');
-            }
+            const level = $('input[name="trainLevel"]:checked').value, period = $('#selPeriod'); period.innerHTML = '';
+            if(level === '大隊常訓') { ['上半年', '下半年'].forEach(v => period.add(new Option(v, v))); $('#selCompany').classList.add('hidden'); }
+            else { for(let i=1; i<=12; i++) period.add(new Option(i+'月', i+'月')); $('#selCompany').classList.remove('hidden'); }
             resetCourses();
         }
 
         function updateCompanyDropdown() {
-            const bat = $('#selBattalion').value;
-            const comp = $('#selCompany');
-            comp.innerHTML = '<option value="">請選擇中隊...</option>';
+            const bat = $('#selBattalion').value, comp = $('#selCompany'); comp.innerHTML = '<option value="">請選擇中隊...</option>';
             if(bat && UNITS[bat]) UNITS[bat].forEach(c => comp.add(new Option(c, c)));
         }
 
         function addCourse() {
-            if(courseCount >= 4) return;
-            courseCount++;
-            const div = document.createElement('div');
-            div.className = "flex items-center gap-2 group animate-in slide-in-from-left-2 duration-300";
-            div.innerHTML = `<div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-xs font-bold text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition">${courseCount}</div>
-                <input type="text" class="input-style flex-1 course-input" placeholder="請填寫課程內容...">
-                ${courseCount > 2 ? `<button onclick="this.parentElement.remove(); courseCount--; updateAddBtn();" class="text-slate-300 hover:text-rose-500 p-2"><i class="ri-close-circle-fill text-xl"></i></button>` : `<div class="w-9"></div>`}`;
-            $('#courseContainer').appendChild(div);
+            if(courseCount >= 4) return; courseCount++;
+            const div = document.createElement('div'); div.className = "flex items-center gap-2 group course-item animate-in slide-in-from-left-2 duration-300";
+            div.innerHTML = `<div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-xs font-bold text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition label-idx">${courseCount}</div><input type="text" class="input-style flex-1 course-input" placeholder="請填寫課程名稱...">${courseCount > 2 ? `<button onclick="removeCourse(this)" class="text-slate-300 hover:text-rose-500 p-2"><i class="ri-close-circle-fill text-xl"></i></button>` : `<div class="w-9"></div>`}`;
+            $('#courseContainer').appendChild(div); updateAddBtn();
+        }
+        function removeCourse(btn) {
+            btn.closest('.course-item').remove(); courseCount--;
+            document.querySelectorAll('.course-item').forEach((el, i) => el.querySelector('.label-idx').innerText = i + 1);
             updateAddBtn();
         }
-
         function updateAddBtn() { $('#btnAddCourse').disabled = (courseCount >= 4); $('#btnAddCourse').style.opacity = (courseCount >= 4) ? '0.3' : '1'; }
         function resetCourses() { $('#courseContainer').innerHTML = ''; courseCount = 0; addCourse(); addCourse(); }
-
-        function openCalendar() {
-            currentYear = parseInt($('#selYear').value) + 1911;
-            renderCalendar();
-            $('#calendarModal').classList.remove('hidden').classList.add('flex');
-        }
-
+        
+        function openCalendar() { currentYear = parseInt($('#selYear').value) + 1911; renderCalendar(); $('#calendarModal').classList.remove('hidden').classList.add('flex'); }
         function renderCalendar() {
             $('#calMonthTitle').innerText = `${currentYear}年 ${currentMonth}月`;
             const grid = $('#calGrid'); grid.innerHTML = '';
-            const days = new Date(currentYear, currentMonth, 0).getDate();
-            const start = new Date(currentYear, currentMonth - 1, 1).getDay();
+            const days = new Date(currentYear, currentMonth, 0).getDate(), start = new Date(currentYear, currentMonth - 1, 1).getDay();
             for(let i=0; i<start; i++) grid.innerHTML += '<div></div>';
             for(let d=1; d<=days; d++) {
                 const k = `${currentYear}/${currentMonth}/${d}`, div = document.createElement('div');
                 div.className = `p-2 text-sm rounded-lg cursor-pointer transition ${selectedDates.has(k) ? 'bg-blue-600 text-white font-bold' : 'hover:bg-slate-100'}`;
-                div.innerText = d;
-                div.onclick = () => { selectedDates.has(k) ? selectedDates.delete(k) : selectedDates.add(k); renderCalendar(); };
-                grid.appendChild(div);
+                div.innerText = d; div.onclick = () => { selectedDates.has(k) ? selectedDates.delete(k) : selectedDates.add(k); renderCalendar(); }; grid.appendChild(div);
             }
         }
-
         function changeMonth(d) { currentMonth += d; if(currentMonth > 12) { currentMonth = 1; currentYear++; } else if(currentMonth < 1) { currentMonth = 12; currentYear--; } renderCalendar(); }
         function calClear() { selectedDates.clear(); renderCalendar(); }
         function confirmCalendar() {
             const sorted = Array.from(selectedDates).map(s => { const[y,m,d]=s.split('/').map(Number); return {y,m,d}; }).sort((a,b)=>(a.y*10000+a.m*100+a.d)-(b.y*10000+b.m*100+b.d));
             let groups = {}; sorted.forEach(o => { const k=`${o.y}-${o.m}`; groups[k] = groups[k] || []; groups[k].push(o.d); });
             let res = []; for(let k in groups) { const [y,m]=k.split('-').map(Number); res.push(`${y-1911}年${m}月${groups[k].join('、')}日`); }
-            $('#trainDates').value = res.join(' ; ');
-            $('#calendarModal').classList.add('hidden');
+            $('#trainDates').value = res.join(' ; '); $('#calendarModal').classList.add('hidden');
         }
 
         function submitData() {
             const level = $('input[name="trainLevel"]:checked').value, bat = $('#selBattalion').value, comp = $('#selCompany').value, year = $('#selYear').value, period = $('#selPeriod').value, dates = $('#trainDates').value, peo = $('#trainPeople').value;
             if(!bat || (level==='中隊常訓' && !comp) || !dates || !peo) return alert("資料不完整！");
-            const courses = []; document.querySelectorAll('.course-input').forEach(i => { if(i.value.trim()) courses.push(i.value.trim()); });
+            const courses =[]; document.querySelectorAll('.course-input').forEach(i => { if(i.value.trim()) courses.push(i.value.trim()); });
             if(courses.length < 2) return alert("課程至少兩項！");
             $('#loading').classList.remove('hidden');
             fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ mode: 'append', data:[{ level, year, period, unit: (level==='大隊常訓'?bat:comp), dates, courses: courses.join('、'), people: peo }] }), headers: { 'Content-Type': 'text/plain' } })
             .then(r => r.json()).then(res => { if(res.status==='success'){ alert('填報成功！'); resetForm(); loadHistory(false); } })
             .finally(() => $('#loading').classList.add('hidden'));
         }
-
         function resetForm() { $('#selBattalion').value = ''; $('#selCompany').value = ''; $('#trainDates').value = ''; $('#trainPeople').value = ''; resetCourses(); }
 
         function loadHistory(show) {
             if(show) $('#loading').classList.remove('hidden');
             fetch(GAS_API_URL + "?mode=get&t=" + new Date().getTime())
-            .then(r => r.json()).then(res => { if(res.status==='success'){ historyData = [...MOCK_EXAMPLES, ...res.data]; sortData(); renderHistory(); checkAudit(); } })
+            .then(r => r.json()).then(res => { if(res.status==='success'){ historyData = [...MOCK_EXAMPLES, ...res.data]; sortData(); renderHistory(); checkAudit(); updateStats(); } })
             .finally(() => $('#loading').classList.add('hidden'));
+        }
+
+        function updateStats() {
+            const realData = historyData.filter(r => !r.isExample);
+            $('#statTotal').innerText = realData.length;
+            $('#stat114').innerText = realData.filter(r => r.period.includes('114年')).length;
+            $('#stat113').innerText = realData.filter(r => r.period.includes('113年')).length;
+            $('#stat112').innerText = realData.filter(r => r.period.includes('112年')).length;
         }
 
         function sortData() {
@@ -320,7 +282,7 @@
                     let v = parseInt(m[1]) * 100, p = m[2];
                     if(p==='上半年') return v+1; if(p==='下半年') return v+70; return v+parseInt(p.replace('月',''));
                 };
-                return getVal(b.period) - getVal(a.period); // 單位內依年份降序
+                return getVal(b.period) - getVal(a.period); 
             });
         }
 
@@ -330,17 +292,8 @@
             if(currentPage > maxP) currentPage = maxP;
             const data = historyData.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage);
             data.forEach((r, i) => {
-                const tr = document.createElement('tr');
-                if(r.isExample) tr.className = "example-row";
-                tr.innerHTML = `
-                    <td class="text-center font-mono text-xs text-slate-400">${(currentPage-1)*itemsPerPage + i + 1}</td>
-                    <td><span class="px-2 py-1 rounded text-[10px] font-bold ${r.level==='大隊常訓'?'bg-indigo-50 text-indigo-600':'bg-amber-50 text-amber-600'}">${r.level.substring(0,2)}</span></td>
-                    <td class="font-bold text-slate-700">${r.unit}</td>
-                    <td class="font-bold text-blue-600">${r.period}</td>
-                    <td class="text-xs text-slate-500">${r.dates}</td>
-                    <td class="text-right font-bold pr-10">${r.people}</td>
-                    <td class="text-center"><i class="ri-checkbox-circle-fill text-emerald-500"></i></td>
-                `;
+                const tr = document.createElement('tr'); if(r.isExample) tr.className = "example-row";
+                tr.innerHTML = `<td class="text-center font-mono text-xs text-slate-400">${(currentPage-1)*itemsPerPage + i + 1}</td><td><span class="px-2 py-1 rounded text-[10px] font-bold ${r.level==='大隊常訓'?'bg-indigo-50 text-indigo-600':'bg-amber-50 text-amber-600'}">${r.level.substring(0,2)}</span></td><td class="font-bold text-slate-700">${r.unit}</td><td class="font-bold text-blue-600">${r.period}</td><td class="text-xs text-slate-500">${r.dates}</td><td class="text-xs text-slate-500 truncate max-w-[300px]" title="${r.courses}">${r.courses}</td><td class="text-right font-bold pr-5">${r.people}</td><td class="text-center"><i class="ri-checkbox-circle-fill text-emerald-500"></i></td>`;
                 body.appendChild(tr);
             });
             $('#pageStart').innerText = total ? (currentPage-1)*itemsPerPage+1 : 0;
@@ -351,52 +304,23 @@
         function changePage(d) { currentPage += d; renderHistory(); }
 
         function checkAudit() {
-            const YEARS = ["114年", "113年", "112年"];
-            let auditHtml = "";
+            const YEARS = ["114年", "113年", "112年"]; let auditHtml = "";
             YEARS.forEach(y => {
-                const missingBats = [], missingComps = [];
-                const repBats = new Set(), repComps = new Set();
-                historyData.forEach(r => {
-                    if(r.isExample) return;
-                    if(r.period.includes(y)) {
-                        const val = r.period.replace(y, "").trim();
-                        if(r.level === '大隊常訓') repBats.add(r.unit + val);
-                        else repComps.add(r.unit + val);
-                    }
-                });
-                ["第一大隊","第二大隊","第三大隊","第四大隊"].forEach(b => {
-                    const m = []; if(!repBats.has(b+"上半年")) m.push("上"); if(!repBats.has(b+"下半年")) m.push("下");
-                    if(m.length) missingBats.push(`<span class="text-rose-500 font-bold">${b}</span>(${m.join('、')})`);
-                });
-                for(let b in UNITS) {
-                    UNITS[b].forEach(c => {
-                        const m = []; for(let i=1; i<=12; i++) if(!repComps.has(c+i+"月")) m.push(i);
-                        if(m.length) missingComps.push(`<span class="text-slate-700 font-medium">${c}</span><span class="text-[10px] text-slate-400">(${m.length===12?'全':m.join(',')})</span>`);
-                    });
-                }
-                if(missingBats.length || missingComps.length) {
-                    auditHtml += `
-                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                            <div class="font-bold text-slate-700 text-sm mb-2"><i class="ri-calendar-line"></i> ${y} 進度</div>
-                            <div class="space-y-2">
-                                ${missingBats.length ? `<div class="text-[11px]"><span class="bg-rose-100 text-rose-600 px-1 py-0.5 rounded font-bold mr-1">大隊缺</span>${missingBats.join(' ')}</div>` : ''}
-                                ${missingComps.length ? `<div class="text-[11px] grid grid-cols-1 gap-1"><span class="bg-slate-200 text-slate-600 px-1 py-0.5 rounded font-bold w-fit">中隊缺</span>${missingComps.join(' ')}</div>` : ''}
-                            </div>
-                        </div>`;
-                }
+                const mB = [], mC =[]; const rB = new Set(), rC = new Set();
+                historyData.forEach(r => { if(!r.isExample && r.period.includes(y)) { const v = r.period.replace(y, "").trim(); if(r.level === '大隊常訓') rB.add(r.unit + v); else rC.add(r.unit + v); } });["第一大隊","第二大隊","第三大隊","第四大隊"].forEach(b => { const m =[]; if(!rB.has(b+"上半年")) m.push("上"); if(!rB.has(b+"下半年")) m.push("下"); if(m.length) mB.push(`<span class="text-rose-500 font-bold">${b}</span>(${m.join('、')})`); });
+                for(let b in UNITS) { UNITS[b].forEach(c => { const m =[]; for(let i=1; i<=12; i++) if(!rC.has(c+i+"月")) m.push(i); if(m.length) mC.push(`<span class="text-slate-700 font-medium">${c}</span><span class="text-[10px] text-slate-400">(${m.length===12?'全':m.join(',')})</span>`); }); }
+                if(mB.length || mC.length) { auditHtml += `<div class="bg-slate-50 p-3 rounded-2xl border border-slate-100"><div class="font-bold text-slate-700 text-sm mb-2"><i class="ri-calendar-line"></i> ${y} 進度</div><div class="space-y-2">${mB.length ? `<div class="text-[11px]"><span class="bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded font-bold mr-1">大隊缺</span>${mB.join(' ')}</div>` : ''}${mC.length ? `<div class="text-[11px] grid grid-cols-1 gap-1"><span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold w-fit">中隊缺</span>${mC.join(' ')}</div>` : ''}</div></div>`; }
             });
-            $('#alertBanner').classList.toggle('hidden', !auditHtml);
-            $('#alertContent').innerHTML = auditHtml;
+            $('#alertBanner').classList.toggle('hidden', !auditHtml); $('#alertContent').innerHTML = auditHtml;
         }
 
         function exportExcel() {
-            const exp = historyData.filter(r => !r.isExample);
-            if(!exp.length) return alert("無資料！");
+            const exp = historyData.filter(r => !r.isExample); if(!exp.length) return alert("無資料！");
             const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet('常訓紀錄');
-            ws.columns =[{header:'項次',key:'id',width:8},{header:'訓練層級',key:'level',width:15},{header:'填報單位',key:'unit',width:20},{header:'年度期別',key:'period',width:20},{header:'訓練日期',key:'dates',width:40},{header:'參與人次',key:'people',width:15}];
+            ws.columns =[{header:'項次',key:'id',width:8},{header:'訓練層級',key:'level',width:15},{header:'填報單位',key:'unit',width:20},{header:'年度期別',key:'period',width:20},{header:'訓練日期',key:'dates',width:35},{header:'課程內容',key:'courses',width:50},{header:'參與人次',key:'people',width:12}];
             ws.getRow(1).eachCell(c => { c.font={bold:true,color:{argb:'FFFFFFFF'}}; c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E293B'}}; });
             exp.forEach((r, i) => ws.addRow({...r, id: i+1}));
-            wb.xlsx.writeBuffer().then(buf => saveAs(new Blob([buf]), '常訓紀錄.xlsx'));
+            wb.xlsx.writeBuffer().then(buf => saveAs(new Blob([buf]), '常訓紀錄統計盤點表.xlsx'));
         }
     </script>
 </body>
