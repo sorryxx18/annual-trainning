@@ -31,6 +31,12 @@
             "中山中隊", "松山中隊", "內湖中隊",
             "大同中隊", "士林中隊", "北投中隊"
         ];
+
+        // 固定的範例資料
+        const MOCK_EXAMPLES =[
+            { isExample: true, level: "大隊常訓", period: "114年上半年", unit: "第一大隊", dates: "114年2月10日、15日", courses: "裝備器材保養檢查、體能測驗(3000公尺)", people: "85", createdAt: "系統範例" },
+            { isExample: true, level: "中隊常訓", period: "114年1月", unit: "中正中隊", dates: "114年1月5日、10日", courses: "破門訓練、火場搜救演練", people: "40", createdAt: "系統範例" }
+        ];
     </script>
 
     <style>
@@ -47,9 +53,12 @@
         .sidebar-link:hover:not(.active) { background: #1e293b; color: white; }
         
         .table-wrapper { width: 100%; overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0; }
-        table { width: 100%; min-width: 1000px; border-collapse: collapse; table-layout: fixed; }
+        table { width: 100%; min-width: 1050px; border-collapse: collapse; table-layout: fixed; }
         th { background: #f8fafc; color: #475569; font-weight: 700; padding: 12px 10px; border: 1px solid #cbd5e1; font-size: 14px; position: sticky; top: 0; }
         td { border: 1px solid #cbd5e1; padding: 10px 8px; vertical-align: middle; background: white; font-size: 14px; }
+        
+        /* 範例列的樣式 */
+        .example-row td { background-color: #fefce8 !important; color: #854d0e; border-style: dashed; }
         
         .input-style { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; font-size: 14px; outline: none; transition: all 0.2s; background: #f8fafc; }
         .input-style:focus { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
@@ -69,7 +78,6 @@
         .spinner { width: 40px; height: 40px; border: 4px solid #fff; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* 讓長清單可以滾動 */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #fca5a5; border-radius: 4px; }
     </style>
@@ -114,7 +122,7 @@
                     <span id="alertTitle">114年度 常訓調查進度</span>
                     <button onclick="checkAudit()" class="text-[10px] bg-white border border-rose-200 px-2 py-0.5 rounded hover:bg-rose-50 text-rose-600"><i class="ri-refresh-line"></i> 重新檢查</button>
                 </h3>
-                <div class="text-xs text-rose-700 leading-relaxed font-medium max-h-32 overflow-y-auto custom-scrollbar pr-2" id="alertContent">載入中...</div>
+                <div class="text-[13px] text-rose-700 leading-relaxed font-medium max-h-32 overflow-y-auto custom-scrollbar pr-2" id="alertContent">載入中...</div>
             </div>
             <button onclick="$('#alertBanner').classList.add('hidden')" class="text-rose-400 hover:text-rose-700"><i class="ri-close-line text-lg"></i></button>
         </div>
@@ -235,12 +243,12 @@
                 </div>
             </div>
             
-            <div class="table-wrapper flex-1 min-h-0 overflow-auto border border-slate-200 shadow-sm">
+            <div class="table-wrapper flex-1 min-h-0 overflow-auto border border-slate-200 shadow-sm relative">
                 <table id="historyTable">
                     <thead>
                         <tr>
                             <th style="width:60px">項次</th>
-                            <th style="width:100px">訓練層級</th>
+                            <th style="width:110px">訓練層級</th>
                             <th style="width:120px">填報單位</th>
                             <th style="width:120px">年度/期別</th>
                             <th style="width:180px">訓練日期</th>
@@ -257,7 +265,7 @@
 
             <!-- 分頁列 -->
             <div class="h-[60px] flex items-center justify-between border-t border-slate-200 pt-3 mt-2 shrink-0 bg-slate-50 rounded-b-xl px-2">
-                <div class="text-sm text-slate-500">顯示第 <span id="pageStart" class="font-bold">0</span> - <span id="pageEnd" class="font-bold">0</span> 筆，共 <span id="pageTotal" class="font-bold text-slate-700">0</span> 筆</div>
+                <div class="text-sm text-slate-500">顯示第 <span id="pageStart" class="font-bold">0</span> - <span id="pageEnd" class="font-bold">0</span> 筆，共 <span id="pageTotal" class="font-bold text-slate-700">0</span> 筆紀錄</div>
                 <div class="flex gap-2">
                     <button onclick="changePage(-1)" id="btnPrev" class="px-3 py-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 text-sm font-bold disabled:opacity-50">上一頁</button>
                     <button onclick="changePage(1)" id="btnNext" class="px-3 py-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 text-sm font-bold disabled:opacity-50">下一頁</button>
@@ -294,7 +302,7 @@
     <script>
         const $ = (s) => document.querySelector(s);
         let courseCount = 0;
-        let historyData =[]; // 預設為空，不再顯示假資料
+        let historyData = [...MOCK_EXAMPLES]; // 載入時預設帶入範例
         
         // 分頁變數
         let currentPage = 1;
@@ -307,6 +315,7 @@
 
         window.onload = () => {
             initForm();
+            sortHistoryData(); // 先排序範例
             renderHistory();
             checkAudit();
         };
@@ -336,7 +345,7 @@
         // 📝 表單邏輯
         // ==========================================
         function initForm() {
-            $('#selYear').value = `114年`; // 預設鎖定在 114年
+            $('#selYear').value = `114年`; 
             updateFormUI();
             resetCourses();
         }
@@ -436,7 +445,6 @@
             $('#calendarModal').classList.remove('hidden');
             $('#calendarModal').classList.add('flex');
             
-            // 將西元年自動設為符合選擇的民國年
             const selectedRocYear = parseInt($('#selYear').value.replace('年',''));
             if (!isNaN(selectedRocYear)) {
                 currentYear = selectedRocYear + 1911;
@@ -510,7 +518,7 @@
             
             let parts =[]; 
             for(let k in groups) { 
-                const [y, m] = k.split('-').map(Number); 
+                const[y, m] = k.split('-').map(Number); 
                 parts.push(`${y-1911}年${m}月${groups[k].join('、')}日`); 
             }
             
@@ -523,6 +531,10 @@
         // ==========================================
         function sortHistoryData() {
             historyData.sort((a, b) => {
+                // 讓「範例」強制置頂
+                if(a.isExample && !b.isExample) return -1;
+                if(!a.isExample && b.isExample) return 1;
+
                 // 1. 依單位排序 (參考 UNIT_ORDER)
                 let idxA = UNIT_ORDER.indexOf(a.unit);
                 let idxB = UNIT_ORDER.indexOf(b.unit);
@@ -530,7 +542,7 @@
                 if (idxB === -1) idxB = 999;
                 if (idxA !== idxB) return idxA - idxB;
 
-                // 2. 依年度/期別排序 (解析字串轉數字)
+                // 2. 依年度/期別排序
                 const parsePeriod = (periodStr) => {
                     let match = periodStr.match(/(\d+)年(.*)/);
                     if (!match) return 0;
@@ -585,6 +597,7 @@
             if(GAS_API_URL.includes("YOUR_SCRIPT_ID")) {
                 const now = new Date();
                 historyData.push({
+                    isExample: false,
                     level: level,
                     period: `${year}${period}`,
                     unit: finalUnit,
@@ -630,7 +643,6 @@
         // ==========================================
         function loadHistory(showLoadingIcon = false) {
             if(GAS_API_URL.includes("YOUR_SCRIPT_ID")) {
-                // 如果在測試階段沒有 GAS 連結，僅重新渲染現有陣列
                 sortHistoryData();
                 renderHistory();
                 checkAudit();
@@ -646,8 +658,9 @@
             .then(res => res.json())
             .then(json => {
                 if(json.status === 'success') {
-                    historyData = json.data ||[];
-                    sortHistoryData(); // 從遠端拿回資料後進行排序
+                    // 將從 GAS 取回來的真實資料，與本地端的範例合併
+                    historyData = [...MOCK_EXAMPLES, ...(json.data ||[])];
+                    sortHistoryData(); 
                     renderHistory();
                     checkAudit(); 
                 }
@@ -676,16 +689,21 @@
                 pageData.forEach((row, i) => {
                     const globalIdx = startIdx + i + 1;
                     const tr = document.createElement('tr');
-                    tr.className = i % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-slate-50 hover:bg-slate-100';
+                    
+                    // 若為範例，套用特定 CSS 類別；否則斑馬紋
+                    tr.className = row.isExample ? 'example-row' : (i % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-slate-50 hover:bg-slate-100');
                     
                     const levelTag = row.level === '大隊常訓' 
                         ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold border border-blue-200">大隊</span>`
                         : `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold border border-emerald-200">中隊</span>`;
 
+                    // 範例徽章
+                    const exampleBadge = row.isExample ? `<span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px] ml-1 font-bold border border-amber-200">範例</span>` : '';
+
                     tr.innerHTML = `
                         <td class="text-center text-slate-400 font-mono text-xs">${globalIdx}</td>
                         <td class="text-center">${levelTag}</td>
-                        <td class="font-bold text-slate-700">${row.unit}</td>
+                        <td class="font-bold text-slate-700 flex items-center justify-center h-full gap-1 pt-[10px]">${row.unit} ${exampleBadge}</td>
                         <td class="font-bold text-slate-700">${row.period}</td>
                         <td class="text-slate-600 text-sm">${row.dates}</td>
                         <td class="text-slate-600 text-sm truncate max-w-[250px]" title="${row.courses}">${row.courses}</td>
@@ -710,7 +728,10 @@
         }
 
         function exportExcel() {
-            if(historyData.length === 0) return alert('無資料可匯出');
+            // ★ 匯出 Excel 時，過濾掉 isExample === true 的範例資料 ★
+            const exportData = historyData.filter(r => !r.isExample);
+
+            if(exportData.length === 0) return alert('目前只有範例，無實際資料可匯出！');
             
             const wb = new ExcelJS.Workbook(); 
             const ws = wb.addWorksheet('常訓紀錄表');
@@ -732,7 +753,7 @@
                 c.alignment = {vertical: 'middle', horizontal: 'center'};
             });
 
-            historyData.forEach((r, i) => { 
+            exportData.forEach((r, i) => { 
                 ws.addRow({...r, id: i+1}); 
             });
 
@@ -747,17 +768,18 @@
         function checkAudit() {
             const TARGET_YEAR = '114年';
             
-            // 記錄各單位已填報的期別
             const reportedBats = {}; 
             const reportedComps = {}; 
 
-            // 初始化容器["第一大隊","第二大隊","第三大隊","第四大隊"].forEach(b => reportedBats[b] = new Set());
             for (let b in UNITS) {
                 UNITS[b].forEach(c => reportedComps[c] = new Set());
             }
 
             // 掃描歷史資料
             historyData.forEach(row => {
+                // ★ 稽核時，直接跳過範例資料，不將範例算成已填報 ★
+                if(row.isExample) return; 
+
                 const match = row.period.match(/(\d+年)(.*)/);
                 if(match && match[1] === TARGET_YEAR) {
                     const monthOrHalf = match[2];
@@ -774,17 +796,20 @@
 
             // 1. 檢查大隊常訓 (上半年、下半年)
             let batMissingMsg =[];
-            for(let b in reportedBats) {
+            ["第一大隊","第二大隊","第三大隊","第四大隊"].forEach(b => {
                 let missing = [];
-                if(!reportedBats[b].has('上半年')) missing.push('上半年');
-                if(!reportedBats[b].has('下半年')) missing.push('下半年');
+                // 初始化若無資料則為空 Set
+                const repSet = reportedBats[b] || new Set();
+                
+                if(!repSet.has('上半年')) missing.push('上半年');
+                if(!repSet.has('下半年')) missing.push('下半年');
                 
                 if(missing.length > 0) {
                     batMissingMsg.push(`[${b}] 缺交：${missing.join('、')}`);
                 }
-            }
+            });
             if(batMissingMsg.length > 0) {
-                missingAlerts.push(`<div class="mb-1"><span class="bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded text-[10px] mr-1">大隊</span> ${batMissingMsg.join(' ； ')}</div>`);
+                missingAlerts.push(`<div class="mb-1.5"><span class="bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded text-[11px] font-bold mr-1">大隊</span> ${batMissingMsg.join(' ； ')}</div>`);
             }
 
             // 2. 檢查中隊常訓 (1月~12月)
@@ -795,7 +820,6 @@
                     if(!reportedComps[c].has(`${m}月`)) missing.push(`${m}月`);
                 }
                 if(missing.length > 0) {
-                    // 若12個月都沒交，顯示「全年度」讓畫面乾淨
                     if(missing.length === 12) {
                         compMissingMsg.push(`[${c}] 缺交：全年度`);
                     } else {
@@ -804,7 +828,7 @@
                 }
             }
             if(compMissingMsg.length > 0) {
-                missingAlerts.push(`<div><span class="bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded text-[10px] mr-1">中隊</span> ${compMissingMsg.join(' ； ')}</div>`);
+                missingAlerts.push(`<div><span class="bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded text-[11px] font-bold mr-1">中隊</span> ${compMissingMsg.join(' ； ')}</div>`);
             }
 
             // 顯示或隱藏 Banner
