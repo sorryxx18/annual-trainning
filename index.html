@@ -22,6 +22,15 @@
             "第三大隊":["中山中隊", "松山中隊", "內湖中隊"],
             "第四大隊":["大同中隊", "士林中隊", "北投中隊"]
         };
+
+        // 排序用權重 (先依單位排序)
+        const UNIT_ORDER =[
+            "第一大隊", "第二大隊", "第三大隊", "第四大隊",
+            "中正中隊", "萬華中隊", "文山中隊",
+            "大安中隊", "信義中隊", "南港中隊",
+            "中山中隊", "松山中隊", "內湖中隊",
+            "大同中隊", "士林中隊", "北投中隊"
+        ];
     </script>
 
     <style>
@@ -59,6 +68,10 @@
         #loading { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: none; justify-content: center; align-items: center; color: white; backdrop-filter: blur(2px); }
         .spinner { width: 40px; height: 40px; border: 4px solid #fff; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 讓長清單可以滾動 */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #fca5a5; border-radius: 4px; }
     </style>
 </head>
 <body class="bg-slate-50 h-screen flex overflow-hidden">
@@ -93,15 +106,15 @@
             <button onclick="toggleSidebar()" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg"><i class="ri-menu-line text-xl"></i></button>
         </header>
 
-        <!-- 未填報提醒橫幅 -->
+        <!-- 114年度 稽核提醒橫幅 -->
         <div id="alertBanner" class="bg-rose-50 border-b border-rose-200 px-6 py-4 flex items-start gap-3 hidden shadow-sm shrink-0">
-            <div class="mt-1 bg-rose-100 p-1.5 rounded-full"><i class="ri-alarm-warning-fill text-rose-500 text-lg"></i></div>
-            <div class="flex-1">
-                <h3 class="font-bold text-rose-800 text-sm mb-1 flex items-center gap-2">
-                    <span id="alertTitle">本期尚未填報提醒</span>
+            <div class="mt-1 bg-rose-100 p-1.5 rounded-full"><i class="ri-file-search-fill text-rose-500 text-lg"></i></div>
+            <div class="flex-1 min-w-0">
+                <h3 class="font-bold text-rose-800 text-sm mb-2 flex items-center gap-2">
+                    <span id="alertTitle">114年度 常訓調查進度</span>
                     <button onclick="checkAudit()" class="text-[10px] bg-white border border-rose-200 px-2 py-0.5 rounded hover:bg-rose-50 text-rose-600"><i class="ri-refresh-line"></i> 重新檢查</button>
                 </h3>
-                <div class="text-xs text-rose-600 leading-relaxed font-medium" id="alertContent">載入中...</div>
+                <div class="text-xs text-rose-700 leading-relaxed font-medium max-h-32 overflow-y-auto custom-scrollbar pr-2" id="alertContent">載入中...</div>
             </div>
             <button onclick="$('#alertBanner').classList.add('hidden')" class="text-rose-400 hover:text-rose-700"><i class="ri-close-line text-lg"></i></button>
         </div>
@@ -157,7 +170,7 @@
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">3-1. 辦理年度</label>
                             <select id="selYear" class="input-style">
-                                <option value="114年">114年</option>
+                                <option value="114年" selected>114年</option>
                                 <option value="115年">115年</option>
                                 <option value="116年">116年</option>
                             </select>
@@ -177,7 +190,7 @@
 
                     <hr class="border-slate-100">
 
-                    <!-- 4. 課程內容 (動態新增) -->
+                    <!-- 4. 課程內容 -->
                     <div>
                         <div class="flex justify-between items-end mb-2">
                             <label class="block text-sm font-bold text-slate-700">4. 課程內容 <span class="text-xs text-rose-500 font-normal ml-1">(最少2項，最多4項)</span></label>
@@ -228,8 +241,8 @@
                         <tr>
                             <th style="width:60px">項次</th>
                             <th style="width:100px">訓練層級</th>
-                            <th style="width:120px">年度/期別</th>
                             <th style="width:120px">填報單位</th>
+                            <th style="width:120px">年度/期別</th>
                             <th style="width:180px">訓練日期</th>
                             <th style="width:250px">課程內容</th>
                             <th style="width:80px" class="text-right">人次</th>
@@ -281,7 +294,7 @@
     <script>
         const $ = (s) => document.querySelector(s);
         let courseCount = 0;
-        let historyData =[];
+        let historyData =[]; // 預設為空，不再顯示假資料
         
         // 分頁變數
         let currentPage = 1;
@@ -294,8 +307,6 @@
 
         window.onload = () => {
             initForm();
-            // 預設先產生假資料展示介面，待後端串接後再移除
-            generateMockData(); 
             renderHistory();
             checkAudit();
         };
@@ -325,13 +336,7 @@
         // 📝 表單邏輯
         // ==========================================
         function initForm() {
-            // 預設年份選擇今年對應的民國年 (例如 2026 -> 115)
-            const rocYear = new Date().getFullYear() - 1911;
-            const selYear = $('#selYear');
-            let hasYear = Array.from(selYear.options).some(opt => opt.value === `${rocYear}年`);
-            if(!hasYear) selYear.add(new Option(`${rocYear}年`, `${rocYear}年`));
-            selYear.value = `${rocYear}年`;
-
+            $('#selYear').value = `114年`; // 預設鎖定在 114年
             updateFormUI();
             resetCourses();
         }
@@ -347,13 +352,12 @@
                 $('#periodLabel').innerText = '3-2. 辦理期別';
                 selPeriod.add(new Option('上半年', '上半年'));
                 selPeriod.add(new Option('下半年', '下半年'));
-                containerCompany.classList.add('hidden'); // 隱藏中隊選單
+                containerCompany.classList.add('hidden'); 
             } else {
                 $('#periodLabel').innerText = '3-2. 辦理月份';
                 for(let i=1; i<=12; i++) selPeriod.add(new Option(`${i}月`, `${i}月`));
-                // 預設選取當月
                 selPeriod.value = `${new Date().getMonth() + 1}月`;
-                containerCompany.classList.remove('hidden'); // 顯示中隊選單
+                containerCompany.classList.remove('hidden'); 
             }
             updateCompanyDropdown();
         }
@@ -376,8 +380,8 @@
         function resetCourses() {
             $('#courseContainer').innerHTML = '';
             courseCount = 0;
-            addCourse(); // 必填1
-            addCourse(); // 必填2
+            addCourse(); 
+            addCourse(); 
             checkCourseButton();
         }
 
@@ -398,7 +402,6 @@
         function removeCourse(btn) {
             btn.closest('.course-item').remove();
             courseCount--;
-            // 重新排序號碼
             document.querySelectorAll('.course-item').forEach((el, index) => {
                 el.querySelector('div').innerText = index + 1;
             });
@@ -432,6 +435,12 @@
         function openCalendar() {
             $('#calendarModal').classList.remove('hidden');
             $('#calendarModal').classList.add('flex');
+            
+            // 將西元年自動設為符合選擇的民國年
+            const selectedRocYear = parseInt($('#selYear').value.replace('年',''));
+            if (!isNaN(selectedRocYear)) {
+                currentYear = selectedRocYear + 1911;
+            }
             renderCalendar();
         }
         function closeCalendar() {
@@ -483,7 +492,7 @@
         function calClear() { selectedDates.clear(); renderCalendar(); }
         function confirmCalendar() {
             const sorted = Array.from(selectedDates).map(s => {
-                const [y,m,d] = s.split('/').map(Number); 
+                const[y,m,d] = s.split('/').map(Number); 
                 return {y, m, d};
             }).sort((a,b) => (a.y*10000 + a.m*100 + a.d) - (b.y*10000 + b.m*100 + b.d));
             
@@ -492,7 +501,6 @@
                 closeCalendar(); return;
             }
 
-            // 依照月份分組字串 (例如: 115年3月1日、5日；4月2日)
             let groups = {}; 
             sorted.forEach(o => { 
                 const k = `${o.y}-${o.m}`; 
@@ -511,10 +519,35 @@
         }
 
         // ==========================================
-        // 💾 資料送出與儲存
+        // 💾 資料送出與排序
         // ==========================================
+        function sortHistoryData() {
+            historyData.sort((a, b) => {
+                // 1. 依單位排序 (參考 UNIT_ORDER)
+                let idxA = UNIT_ORDER.indexOf(a.unit);
+                let idxB = UNIT_ORDER.indexOf(b.unit);
+                if (idxA === -1) idxA = 999;
+                if (idxB === -1) idxB = 999;
+                if (idxA !== idxB) return idxA - idxB;
+
+                // 2. 依年度/期別排序 (解析字串轉數字)
+                const parsePeriod = (periodStr) => {
+                    let match = periodStr.match(/(\d+)年(.*)/);
+                    if (!match) return 0;
+                    let y = parseInt(match[1]) * 100;
+                    let mStr = match[2];
+                    let m = 0;
+                    if (mStr === '上半年') m = 1;
+                    else if (mStr === '下半年') m = 7;
+                    else m = parseInt(mStr.replace('月', '')) || 0;
+                    return y + m;
+                };
+
+                return parsePeriod(a.period) - parsePeriod(b.period);
+            });
+        }
+
         function submitData() {
-            // 1. 取值與驗證
             const level = $('input[name="trainLevel"]:checked').value;
             const bat = $('#selBattalion').value;
             const comp = $('#selCompany').value;
@@ -549,11 +582,9 @@
                 }]
             };
 
-            // 檢查是否已串接 GAS
             if(GAS_API_URL.includes("YOUR_SCRIPT_ID")) {
-                // 模擬本機儲存展示
                 const now = new Date();
-                historyData.unshift({
+                historyData.push({
                     level: level,
                     period: `${year}${period}`,
                     unit: finalUnit,
@@ -563,13 +594,14 @@
                     createdAt: `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes()}`
                 });
                 alert("[展示模式] 填報成功！\n資料已加入歷史紀錄 (請至歷史紀錄查看)。");
+                
+                sortHistoryData(); // 重新排序
                 resetForm();
                 renderHistory();
                 checkAudit();
                 return;
             }
 
-            // 實際送出至 GAS
             $('#loadingText').innerText = "資料送出中...";
             $('#loading').style.display = 'flex';
             
@@ -597,7 +629,13 @@
         // 📊 歷史資料與稽核功能
         // ==========================================
         function loadHistory(showLoadingIcon = false) {
-            if(GAS_API_URL.includes("YOUR_SCRIPT_ID")) return; // 本機不執行
+            if(GAS_API_URL.includes("YOUR_SCRIPT_ID")) {
+                // 如果在測試階段沒有 GAS 連結，僅重新渲染現有陣列
+                sortHistoryData();
+                renderHistory();
+                checkAudit();
+                return;
+            }
             
             if(showLoadingIcon) {
                 $('#loadingText').innerText = "資料同步中...";
@@ -609,8 +647,9 @@
             .then(json => {
                 if(json.status === 'success') {
                     historyData = json.data ||[];
+                    sortHistoryData(); // 從遠端拿回資料後進行排序
                     renderHistory();
-                    checkAudit(); // 檢查稽核
+                    checkAudit(); 
                 }
             }).finally(() => {
                 $('#loading').style.display = 'none';
@@ -632,14 +671,13 @@
             const pageData = historyData.slice(startIdx, endIdx);
 
             if(total === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-slate-400 py-10">目前尚無紀錄</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-slate-400 py-10"><i class="ri-folder-open-line text-2xl mb-2 block"></i>目前尚無紀錄</td></tr>`;
             } else {
                 pageData.forEach((row, i) => {
                     const globalIdx = startIdx + i + 1;
                     const tr = document.createElement('tr');
                     tr.className = i % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-slate-50 hover:bg-slate-100';
                     
-                    // 標籤顏色
                     const levelTag = row.level === '大隊常訓' 
                         ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold border border-blue-200">大隊</span>`
                         : `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold border border-emerald-200">中隊</span>`;
@@ -647,8 +685,8 @@
                     tr.innerHTML = `
                         <td class="text-center text-slate-400 font-mono text-xs">${globalIdx}</td>
                         <td class="text-center">${levelTag}</td>
-                        <td class="font-bold text-slate-700">${row.period}</td>
                         <td class="font-bold text-slate-700">${row.unit}</td>
+                        <td class="font-bold text-slate-700">${row.period}</td>
                         <td class="text-slate-600 text-sm">${row.dates}</td>
                         <td class="text-slate-600 text-sm truncate max-w-[250px]" title="${row.courses}">${row.courses}</td>
                         <td class="text-right font-bold text-blue-600">${row.people}</td>
@@ -680,15 +718,14 @@
             ws.columns =[
                 {header:'項次', key:'id', width:8},
                 {header:'訓練層級', key:'level', width:15},
-                {header:'年度/期別', key:'period', width:15},
                 {header:'填報單位', key:'unit', width:15},
+                {header:'年度/期別', key:'period', width:15},
                 {header:'訓練日期', key:'dates', width:35},
                 {header:'課程內容', key:'courses', width:50},
                 {header:'參與人次', key:'people', width:12},
                 {header:'建立時間', key:'createdAt', width:20}
             ];
             
-            // 標題樣式
             ws.getRow(1).eachCell(c => {
                 c.font = {bold: true, color: {argb: 'FFFFFFFF'}};
                 c.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF1E293B'}};
@@ -705,69 +742,79 @@
         }
 
         // ==========================================
-        // ⚠️ 智慧稽核 (本期未填報檢查)
+        // ⚠️ 智慧稽核 (專注調查 114年 全年度)
         // ==========================================
         function checkAudit() {
-            const now = new Date();
-            const yearROC = now.getFullYear() - 1911;
-            const month = now.getMonth() + 1;
-            const halfYear = month <= 6 ? '上半年' : '下半年';
+            const TARGET_YEAR = '114年';
             
-            // 目標字串
-            const targetBatPeriod = `${yearROC}年${halfYear}`; // EX: 115年上半年
-            const targetCompPeriod = `${yearROC}年${month}月`; // EX: 115年2月
+            // 記錄各單位已填報的期別
+            const reportedBats = {}; 
+            const reportedComps = {}; 
 
-            // 蒐集本期已填報的單位清單
-            const reportedBats = new Set();
-            const reportedComps = new Set();
+            // 初始化容器["第一大隊","第二大隊","第三大隊","第四大隊"].forEach(b => reportedBats[b] = new Set());
+            for (let b in UNITS) {
+                UNITS[b].forEach(c => reportedComps[c] = new Set());
+            }
 
+            // 掃描歷史資料
             historyData.forEach(row => {
-                if(row.level === '大隊常訓' && row.period === targetBatPeriod) {
-                    reportedBats.add(row.unit);
-                }
-                if(row.level === '中隊常訓' && row.period === targetCompPeriod) {
-                    reportedComps.add(row.unit);
+                const match = row.period.match(/(\d+年)(.*)/);
+                if(match && match[1] === TARGET_YEAR) {
+                    const monthOrHalf = match[2];
+                    if(row.level === '大隊常訓' && reportedBats[row.unit]) {
+                        reportedBats[row.unit].add(monthOrHalf);
+                    }
+                    if(row.level === '中隊常訓' && reportedComps[row.unit]) {
+                        reportedComps[row.unit].add(monthOrHalf);
+                    }
                 }
             });
 
             let missingAlerts =[];
 
-            // 檢查大隊 (4個)
-            let missingBats = [];["第一大隊","第二大隊","第三大隊","第四大隊"].forEach(b => {
-                if(!reportedBats.has(b)) missingBats.push(b);
-            });
-            if(missingBats.length > 0) {
-                missingAlerts.push(`<strong>[大隊常訓 - ${targetBatPeriod}]</strong> 缺交：${missingBats.join('、')}`);
+            // 1. 檢查大隊常訓 (上半年、下半年)
+            let batMissingMsg =[];
+            for(let b in reportedBats) {
+                let missing = [];
+                if(!reportedBats[b].has('上半年')) missing.push('上半年');
+                if(!reportedBats[b].has('下半年')) missing.push('下半年');
+                
+                if(missing.length > 0) {
+                    batMissingMsg.push(`[${b}] 缺交：${missing.join('、')}`);
+                }
+            }
+            if(batMissingMsg.length > 0) {
+                missingAlerts.push(`<div class="mb-1"><span class="bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded text-[10px] mr-1">大隊</span> ${batMissingMsg.join(' ； ')}</div>`);
             }
 
-            // 檢查中隊 (12個)
-            let missingComps = [];
-            for (let b in UNITS) {
-                UNITS[b].forEach(c => {
-                    if(!reportedComps.has(c)) missingComps.push(c);
-                });
+            // 2. 檢查中隊常訓 (1月~12月)
+            let compMissingMsg =[];
+            for(let c in reportedComps) {
+                let missing =[];
+                for(let m=1; m<=12; m++) {
+                    if(!reportedComps[c].has(`${m}月`)) missing.push(`${m}月`);
+                }
+                if(missing.length > 0) {
+                    // 若12個月都沒交，顯示「全年度」讓畫面乾淨
+                    if(missing.length === 12) {
+                        compMissingMsg.push(`[${c}] 缺交：全年度`);
+                    } else {
+                        compMissingMsg.push(`[${c}] 缺交：${missing.join('、')}`);
+                    }
+                }
             }
-            if(missingComps.length > 0) {
-                missingAlerts.push(`<strong>[中隊常訓 - ${targetCompPeriod}]</strong> 缺交：${missingComps.join('、')}`);
+            if(compMissingMsg.length > 0) {
+                missingAlerts.push(`<div><span class="bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded text-[10px] mr-1">中隊</span> ${compMissingMsg.join(' ； ')}</div>`);
             }
 
             // 顯示或隱藏 Banner
             const banner = $('#alertBanner');
             if(missingAlerts.length > 0) {
                 banner.classList.remove('hidden');
-                $('#alertContent').innerHTML = missingAlerts.join('<br>');
+                $('#alertContent').innerHTML = missingAlerts.join('');
             } else {
                 banner.classList.add('hidden');
             }
-        }
-
-        // 產生假資料供展示UI使用
-        function generateMockData() {
-            historyData =[
-                {level: "大隊常訓", period: "115年上半年", unit: "第一大隊", dates: "115年2月10日", courses: "裝備檢查、體能測驗", people: "85", createdAt: "2026/02/25 10:15"},
-                {level: "中隊常訓", period: "115年2月", unit: "中正中隊", dates: "115年2月1日、5日", courses: "破門訓練、搜救演練、通訊器材操作", people: "40", createdAt: "2026/02/20 09:30"},
-                {level: "中隊常訓", period: "115年2月", unit: "萬華中隊", dates: "115年2月8日", courses: "水帶佈線、消防栓操作", people: "38", createdAt: "2026/02/15 14:20"}
-            ];
         }
     </script>
 </body>
